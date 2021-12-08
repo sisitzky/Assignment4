@@ -1,0 +1,143 @@
+---
+title: "Assignment4"
+author: "Andrew Sisitzky"
+date: "12/8/2021"
+output: pdf_document
+---
+
+__PARTS I AND II__
+
+The book that I chose to analyze is The Scarlet Letter by Nathaniel Hawthorne.
+
+```{r, include=FALSE}
+library(gutenbergr)
+library(dplyr)
+library(stringr)
+library(tidytext)
+library(textdata)
+library(tidyverse)
+library(wordcloud)
+library(reshape2)
+```
+
+```{r, include=FALSE}
+scarlet_letter <- gutenberg_download(25344)
+```
+
+```{r, include=FALSE}
+scarlet_letter <- scarlet_letter %>%  
+                        mutate(linenumber = row_number()) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+nrc <- get_sentiments("nrc")
+
+nrc_fear <- get_sentiments("nrc") %>% 
+                    filter(sentiment == "fear")
+
+scarlet_fear <- scarlet_letter %>%
+                    inner_join(nrc_fear) %>%
+                    count(word, sort = TRUE)
+```
+
+```{r, echo=FALSE}
+scarlet_fear
+```
+
+Using the nrc lexicon, I chose to highlight words that were classified under 'fear' as I found this to match up well with the plot of the novel. The words that came up the most in the book were sin, death, evil, and shame. 
+
+```{r, include=FALSE}
+scarlet_letter_sentiment <- scarlet_letter %>%
+                                inner_join(get_sentiments("bing")) %>%
+                                count(index = linenumber %/% 100, sentiment) %>%
+                                pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
+                                mutate(sentiment = positive - negative)
+```
+
+```{r, echo=FALSE}
+ggplot(scarlet_letter_sentiment, aes(index, sentiment)) +
+  geom_col(show.legend = FALSE)
+```
+
+Then using the bing lexicon, I plotted the sentiment over the course of the book, indexing by 100 lines. In this plot, we see that this book generally using negative words and has three major peaks during which many negative words were used. 
+
+
+```{r, include=FALSE}
+afinn <- scarlet_letter %>% 
+                inner_join(get_sentiments("afinn")) %>% 
+                group_by(index = linenumber %/% 100) %>% 
+                summarise(sentiment = sum(value)) %>% 
+                mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(scarlet_letter %>% 
+                              inner_join(get_sentiments("bing")) %>%
+                                    mutate(method = "Bing et al."),
+                          scarlet_letter %>% 
+                              inner_join(get_sentiments("nrc") %>% 
+                                    filter(sentiment %in% c("positive", "negative"))) %>%
+                                      mutate(method = "NRC")) %>%
+                                      count(method, index = linenumber %/% 100, sentiment) %>%
+                                      pivot_wider(names_from = sentiment,
+                                      values_from = n,
+                                      values_fill = 0) %>% 
+                                      mutate(sentiment = positive - negative)
+```
+
+```{r, echo=FALSE}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+
+I then plotted the sentiemnt analysis of this book using all three lexicons. Here we can see that they each show different levels at every stage. While the bing lexicon we looked at before grades the words as mostly negative throighout the book, we see that AFINN and NRC both tend to show more positive levels. While all three show three distinct negative peaks throughout the story, they all show these peaks to a different degree. Overall, NRC seems to show a generally positive grade with the three peaks looking rather small compared to what is shown by the other lexicons. 
+
+```{r, include=FALSE}
+bing_word_counts <- scarlet_letter %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+```
+
+```{r, echo=FALSE}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+```
+
+When looking at the bing word count, we can see that positive words such as like and good tend to have a higher contribution to the sentiment than other positive words. In terms of negative words, it seems that they tend to have less of an extreme contribution to the sentiment, but rather a higher quantity tend to have an equally high contribution to sentiment. 
+
+
+```{r, include=FALSE}
+scarlet_letter %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+
+```{r, echo=FALSE}
+scarlet_letter %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
+
+This word cloud that I created highlights the 100 most commonly used words and organizes them based on their sentiment, positive or negative. 
+
+__PART III__
+
+
+
+
+
