@@ -137,6 +137,53 @@ This word cloud that I created highlights the 100 most commonly used words and o
 
 __PART III__
 
+```{r, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(magrittr)
+library(gutenbergr)
+library(tidyverse)
+library(tnum)
+library(sentimentr)
+source("Book2TN-v6A-1.R")
+```
+
+For part III, I began by authorizing the mssp1.bu.edu server and setting the tnum test space to "test 3"
+
+```{r}
+tnum.authorize("mssp1.bu.edu")
+tnum.setSpace("test3")
+```
+
+I then  downloaded the Scarlet Letter from gutenberg, made some edits in a text file, and re-read it into R.
+
+```{r}
+scarlet_letter2 <- gutenberg_download(gutenberg_id=25344)
+scarlet_letter2 <- readLines("pg25344.txt")
+```
+
+Then, I ingested the text file into the number space. For the purpose of this code running, I commented out this line of code. (it took 4 hours to run) It is saved under sisitzky/scarlet. 
+
+```{r}
+## tnBooksFromLines(scarlet_letter2, "sisitzky/scarlet")
+tnum.getDBPathList(taxonomy="subject", levels=2)
+```
+
+After ingesting the file into the number space, I then used the package sentimentr to do some more sentiment analysis of the text,  creating this plot.
+
+```{r, echo=FALSE}
+scarlet_letter2 %>% 
+  get_sentences() %>% 
+  sentiment_by(by = NULL) %>% #View()
+  ggplot() + geom_density(aes(ave_sentiment))
+```
+
+This final plot shows the avergae sentiment on a sentence level for the book. Here we see that on a sentence level, the postive and negative sentiments tend to be rather equal, with a slight edge going to positive in terms of density, while neutral sentiments seem to be the most common by a large margin. 
+
+
+
+
+
 
 
 
